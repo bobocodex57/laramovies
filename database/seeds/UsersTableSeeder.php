@@ -82,9 +82,5 @@ class UsersTableSeeder extends Seeder
             'password'   => bcrypt('user'),
             'role_id'    =>  DB::table('roles')->where('name', 'Crew')->pluck('id')->first(),
         ]);
-
-
-
-
     }
 }

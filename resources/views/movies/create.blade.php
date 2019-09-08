@@ -1,6 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+
+<!-- Scripts -->
+<script src="{{ asset('js/search.js') }}" defer></script>
+
 <div class="container">
      <form class="card" role="form" method="POST" action="{{ route('movies.store') }}">
         {{ csrf_field() }}
@@ -24,24 +32,34 @@
 
                                   <div class="col-sm-6 col-md-6">
                                       <div class="form-group">
-                                        <label class="form-label">Year</label>
-                                        <input  id="release_year" name="release_year" class="form-control" placeholder="Release Name" value="" type="text">
+                                        <label class="form-label">Movie Release Date</label>
+                                        <input  id="release_date" name="release_date" class="form-control" placeholder="Movie Release Date" value="" type="date">
                                       </div>
                                   </div>
 
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="form-group">
+                                      <label class="form-label">Image URL</label>
+                                      <input  id="image" name="image" class="form-control" placeholder="Movie Image" value="" type="text">
+                                    
+                                    </div>
+                              </div>                            
 
-                                  <div class="col-sm-6 col-md-4">
-                                      <div class="form-group">
-                                        <label class="form-label">Genre</label>
-                                        <select id="genre_id" name="genre_id" class="form-control custom-select">
-                                            @foreach($genres as $genre)
-                                              <option value="{{$genre->id}}">{{$genre->name}}</option>
-                                            @endforeach
+                              <div class="col-sm-6 col-md-4">
+                                    <div class="form-group">
+                                      <label class="form-label">Cover Photo URL</label>
+                                      <input  id="cover_photo" name="cover_photo" class="form-control" placeholder="Movie Cover Image" value="" type="text">
+                                    
+                                    </div>
+                              </div> 
 
-                                        </select>
-                                      </div>
-                                 </div>
-                              
+                              <div class="col-sm-6 col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Popular Rating</label>
+                                        <input id="pop_rating" name="pop_rating" class="form-control" type="number" max="10" min="0">
+                                   </div>
+                                </div>
+
                                 <div class="col-sm-6 col-md-4">
                                       <div class="form-group">
                                         <label class="form-label">Rating</label>
@@ -52,82 +70,108 @@
                                         </select>
                                       </div>
                                 </div>
-
-
-                                <div class="col-sm-10 col-md-6">
+                                
+                                <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
                                       <label class="form-label">Plot</label>
-                                      <textarea id="plot" name="plot" rows="5" class="form-control" placeholder="Plot goes here"></textarea>
+                                      <textarea id="plot" name="plot" rows="5" class="form-control" placeholder="Movie plot goes here"></textarea>
                                     </div>
                                 </div>
 
                                 <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
-                                      <label class="form-label">Image URL</label>
-                                      <input  id="image" name="image" class="form-control" placeholder="Movie Image" value="" type="text">
-                                    
-                                    </div>
-                              </div>
-
-
-                                <div class="col-sm-8 col-md-8">
-                                      <div class="form-group">
-                                          <label class="form-label">Casts</label>
-                                          <select id="casts" name="casts" class="form-control custom-select">
-                                              @foreach($casts as $cast)
-                                                <option value="{{$cast->id}}">{{$cast->first_name}} , {{$cast->last_name}}</option>                                        
-                                              @endforeach
-                                          </select>
-                                      </div>
+                                        <label class="form-label">Movie Length</label>
+                                        <input id="movie_length" name="movie_length" class="form-control" type="text" placeholder="eg 2hrs 10mins">
+                                   </div>
                                 </div>
 
-                                <div class="col-sm-4 col-md-4">
+                                <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
-                                      <label class="form-label">&nbsp;</label>
-                                      <input  id="cast_btn" name="cast_btn" class="form-control btn btn-success add-more" placeholder="Release Name" value="Add" type="button">
-                                    </div>
+                                        <label class="form-label">Movie Studio</label>
+                                        <input id="movie_studio" name="movie_studio" class="form-control" type="text" placeholder="eg Universal Studio">
+                                   </div>
                                 </div>
 
-                                <div class="col-sm-6 col-md-8">
+                                <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
-                                      <table class="table table-bordered table-hover" id="casts_table" name="casts_table">
-                                          
-                                      </table>
-                                    </div>
+                                        <label class="form-label">Country of Origin</label>
+                                        <input id="country" name="country" class="form-control" type="text" placeholder="eg USA">
+                                   </div>
+                                </div>                                
+                                <div class="col-sm-6 col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label">Imdb Movie Id</label>
+                                        <input id="imdb_id" name="imdb_id" class="form-control" type="number" placeholder="eg tt4154756">
+                                   </div>
                                 </div>
 
+                            <div class="col-sm-6 col-md-4"> 
+                              <div class="form-group">
+                                <label for="name" class="form-label">Select the Genre Types</label><br>
+                                      
+                                      @foreach($genres as $genre)
 
-                                <div class="col-sm-6 col-md-6">
+                                          @if($genre->id % 4 == 0)
+                                              <input type="checkbox" name="genres[]" value="{{ $genre->id }}"> {{ $genre->name }} <br>
+                                          @else
+                                              <input type="checkbox" name="genres[]" value="{{ $genre->id }}"> {{ $genre->name }}
+                                          @endif
+
+                                      @endforeach
+
+                              </div>
+                            </div>
+
+                            <div class="col-sm-6 col-md-4"> 
+                              <div class="form-group" id="selected-casts">
+                                <label for="name" class="form-label">Select/Remove Casts</label><br>
+                              </div>
+                          </div>
+
+                          <div class="col-sm-6 col-md-4">
                                     <div class="form-group">
-                                        <label class="form-label">Crew</label>
-                                        <select id="crew" name="crew" class="form-control custom-select">
-                                            @foreach($crews as $crew)
-                                              <option value="{{$crew->id}}">{{$crew->first_name}} , {{$crew->last_name}}</option>                                        
-                                            @endforeach
-                                        </select>
+                                      <label class="form-label">Add Actors to movie</label>
+                                      <input id="casts" name="casts" class="form-control" placeholder="Movie Casts Search" value="" type="text">
+                                      <!-- <a onclick="clearCastRes()" class="btn btn-primary">Clear</a> -->
                                     </div>
+                          </div>
+
+                          <div class="actor_res">  
+                          </div>
+
+                          <div class="col-sm-6 col-md-4"> 
+                              <div class="form-group" id="selected-photos">
+                                <label for="name" class="form-label">Select/Remove Photos</label><br>
                               </div>
+                          </div>
 
-                              <div class="col-sm-2 col-md-2">
-                                  <div class="form-group">
-                                    <label class="form-label">&nbsp;</label>
-                                    <input  id="crew_btn" name="crew_btn" class="form-control btn btn-success add-more" placeholder="Release Name" value="Add" type="button">
-                                  </div>
+                          <div class="col-sm-6 col-md-4">
+                              <div class="form-group">
+                                      <label class="form-label">Add Photos to movie</label>
+                                      <input  id="photo" name="photo" class="form-control" placeholder="Movie Photos Search" value="" type="text">
+                                      <!-- <a class="btn btn-primary" onclick="clearPhotoRes()">Clear</a> -->
                               </div>
+                          </div>
 
-                              <div class="col-sm-6 col-md-6">
-                                  <div class="form-group">
-                                    <table class="table table-bordered table-hover" id="crew_table" name="crew_table">
-                                        
-                                    </table>
-                                  </div>
+                          <div class="photo_res">  
+                          </div>
+
+                          <div class="col-sm-6 col-md-4"> 
+                              <div class="form-group" id="selected-videos">
+                                <label for="name" class="form-label">Select/Remove Video</label><br>
                               </div>
+                          </div>                          
 
-                                
+                          <div class="col-sm-6 col-md-4">
+                              <div class="form-group">
+                                      <label class="form-label">Add Videos to movie</label>
+                                      <input  id="video" name="genre" class="form-control" placeholder="Movie Video Search" value="" type="text">
+                                      <!-- <a class="btn btn-primary" onclick="clearVideoRes()">Clear Results</a> -->
+                              </div>
+                          </div>
 
-
-
-                                    
+                          <div class="video_res">  
+                          </div>                                    
                 </div>
         </div>
         
@@ -147,50 +191,21 @@
 @endsection
 
 @section('custom_scripts')
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 
-<script>
-  var cast_id_items = [];
-  var crew_id_items = [];
+<!-- <script>
 
-  $(document).ready(function(){
-    var i=1,j=1;
-     $("#cast_btn").click(function(){
-      var cast    = $("#casts option:selected").text();   
-      var cast_id = $("#casts").val();   
+  function clearCastRes(){
+    $("div[class='actor_res']").empty();
+  }
+  
+  function clearVideoRes(){
+    $("div[class='video_res']").empty();
+  }
 
-      cast_id_items.push(cast_id);
+  function clearPhotoRes(){
+    $("div[class='photo_res']").empty();
+  }
 
-      var data_to_append = "<td>"+cast+"</td><td><button class='btn btn-danger btn-xs remove' type='button'><i class='glyphicon glyphicon-remove'></i> Remove</button></td>";
-      $('#casts_table').append('<tr id="'+(i+1)+'">'+data_to_append+'</tr>');
-      i++; 
-
-      $('#cast_value').val((cast_id_items));
-
-    });
-
-     $("#crew_btn").click(function(){
-      var crew = $("#crew option:selected").text();   
-      var crew_id = $("#crew").val();  
-             
-      crew_id_items.push(crew_id);
-
-      var data_to_append = "<td>"+crew+"</td><td><button class='btn btn-danger btn-xs remove' type='button'><i class='glyphicon glyphicon-remove'></i> Remove</button></td>";
-      $('#crew_table').append('<tr id="'+(j+1)+'">'+data_to_append+'</tr>');
-      j++; 
-
-      $('#crew_value').val((crew_id_items));
-
-    });
-
-
-   $("body").on("click",".remove",function(){ 
-        $(this).closest('tr').remove();
-      });
-
-
-  });
-
-</script>
+</script> -->
 @endsection
 

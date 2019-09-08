@@ -8,6 +8,8 @@ use App\User;
 use App\Genre;
 use App\Roles;
 use App\Movies;
+use App\Videos;
+use App\Photos;
 use App\Ratings;
 use App\CastCrew;
 use Carbon\Carbon;
@@ -19,6 +21,7 @@ class MoviesController extends Controller
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
+     * Tested
      */
     public function index()
     {
@@ -30,6 +33,7 @@ class MoviesController extends Controller
      * Show the form for creating a new resource.
      *
      * @return \Illuminate\Http\Response
+
      */
     public function create()
     {
@@ -45,32 +49,43 @@ class MoviesController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
+     * Tested
      */
     public function store(Request $request)
     {
-        $movie      = new Movies();
+        $movie = new Movies();
         
         $name          = $request->name;
-        $release_year  = $request->release_year;
+        $release_date  = $request->release_date;
         $image         = $request->image;
-        $genre_id      = $request->genre_id;
+        $cover_photo = $request->cover_photo;
+        $pop_rating    = $request->pop_rating;
         $rating_id     = $request->rating_id;
         $plot          = $request->plot;
+        $movie_length  = $request->movie_length;
+        $movie_studio  = $request->movie_studio;
         $country       = $request->country;
         $imdb_id       = $request->imdb_id;
 
         $movie->name          = $name;
-        $movie->release_year  = $release_year;
+        $movie->release_date  = $release_date;
         $movie->image         = $image;
-        $movie->genre_id      = $genre_id;
+        $movie->cover_photo   = $cover_photo;
         $movie->rating_id     = $rating_id;
+        $movie->pop_rating    = $pop_rating;
         $movie->plot          = $plot;
+        $movie->movie_length  = $movie_length;
+        $movie->movie_studio  = $movie_studio;
         $movie->country       = $country;
         $movie->imdb_id       = $imdb_id;
 
-        $movie->save();
+        if ($movie->save()) {
+            return 'success';
+        } else {
+            return 'false';
+        }
 
-        return 'success';
+        
     }
 
     /**
@@ -78,10 +93,13 @@ class MoviesController extends Controller
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
+     * Tested
      */
     public function show($id)
     {
-        $movie  = Movies::find($id);
+        $movie  = Movies::with('casts','photos','videos','genres','reviews','reviewers')->find($id);
+        $movie->movie_views = $movie->movie_views + 1;
+        $movie->save();
         return $movie;
     }
 
@@ -90,6 +108,7 @@ class MoviesController extends Controller
      *
      * @param  int  $id
      * @return \Illuminate\Http\Response
+
      */
     public function edit($id)
     {
@@ -110,76 +129,121 @@ class MoviesController extends Controller
     public function update(Request $request, $id)
     {
         $movie         = Movies::find($id);
-        $cast_crews    = CastCrew::firstOrNew(['movie_id' => $movie->id]);
+
         $name          = $request->name;
-        $release_year  = $request->release_year;
+        $release_date  = $request->release_date;
         $image         = $request->image;
-        $genre_id      = $request->genre_id;
+        // $cover_photo   = $request->cover_photo;
+        $pop_rating    = $request->pop_rating;
         $rating_id     = $request->rating_id;
         $plot          = $request->plot;
+        $movie_length  = $request->movie_length;
+        $movie_studio  = $request->movie_studio;
         $country       = $request->country;
         $imdb_id       = $request->imdb_id;
 
-        $movie->name          = $name;
-        $movie->release_year  = $release_year;
+        //check for null values
+        if($name)
+            $movie->name          = $name;
+
+        if($release_date)
+            $movie->release_date  = $release_date;
         
         if($image)
             $movie->image         = $image;
         
-            $movie->genre_id      = $genre_id;
-        $movie->rating_id     = $rating_id;
+        // if($cover_photo)
+        //     $movie->$cover_photo  = $cover_photo;
 
-        if($country)
-            $movie->country       = $country;
+        if($pop_rating)
+            $movie->pop_rating    = $pop_rating;
         
+        if ($rating_id) 
+            $movie->rating_id     = $rating_id;
+
         if($plot)
             $movie->plot          = $plot;
         
+        if($movie_length)
+            $movie->movie_length  = $movie_length;
+        
+        if($movie_studio)
+            $movie->movie_studio  = $movie_studio;
+
         if($imdb_id)
             $movie->imdb_id       = $imdb_id;
 
-        $movie->save();
+        //$crews  =  explode(",",$request->crew_value);
+        //cast_ids is an array of user_ids of actors, actress, director, etc of the movie
+        //genre_ids is an array of genres of the movie
+        //photos_ids is an array of photos of the movie
+        //video_ids is an array of videos of the movie
 
-        $crews  =  explode(",",$request->crew_value);
-        $casts  =  explode(",",$request->cast_value);
+        //separate the array
+        $genres = explode(",",$request->genre_ids);
+        $casts  =  explode(",",$request->cast_ids);
+        $photos = explode(",",$request->photo_ids);
+        $videos = explode(",",$request->video_ids);
 
-        if(count($crews)>0 && count($casts)>0 )
+        if(isset($videos) && count($videos) > 0)
         {
-            $cast_crews::where('movie_id',$movie->id)->delete(); 
-        }
+            foreach($videos as $video)
+            {   
+                $video = Videos::find($video);
 
-        if(isset($crews) && count($crews)>1)
-        {
-            foreach($crews as $crew)
-            {
-                $cast_crews->user_id = $crew;
-                $cast_crews->movie_id = $movie->id;
-                $cast_crews->insert([
-                                        'user_id' => $crew,
-                                        'movie_id' => $movie->id,
-                                        'created_at' => Carbon::now(),
-                                        'updated_at' => Carbon::now()
-                                    ]);
+                if ($video) {
+                    $movie->videos()->attach($video);
+                }
             }
         }
 
-        if(count($casts)>0 && count($casts)>1)
+        if(isset($photos) && count($photos) > 0)
+        {
+            foreach($photos as $photo)
+            {   
+                $photo = Photos::find($photo);
+
+                if ($photo) {
+                    $movie->photos()->attach($photo);
+                }
+            }
+        }
+
+        if(isset($genres) && count($genres) > 0)
+        {
+            foreach($genres as $genre)
+            {   
+                $genre = Genre::find($genre);
+
+                if ($genre) {
+                    $movie->genres()->attach($genre);
+                }
+            }
+        }
+
+
+        if(isset($casts) && count($casts) > 0)
         {
             foreach($casts as $cast)
-            {
-                $cast_crews->user_id  = $cast;
-                $cast_crews->movie_id = $movie->id;
-                $cast_crews->insert([
-                                        'user_id' => $cast,
-                                        'movie_id' => $movie->id,
-                                        'created_at' => Carbon::now(),
-                                        'updated_at' => Carbon::now()
-                                    ]);
+            {   
+                $user = User::find($cast);
+
+                if ($user) {
+                    $movie->casts()->attach($user);
+                }
             }
         }
 
-        return 'success';
+       if ($movie->save()) {
 
+            return 'success';
+
+        }else {
+
+            return 'false';
+
+        }
+        
     }
 
 
@@ -189,9 +253,10 @@ class MoviesController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+
     public function destroy($id)
     {
         Movies::find($id)->delete();
-       return 'success';
+        return 'success';
     }
 }
