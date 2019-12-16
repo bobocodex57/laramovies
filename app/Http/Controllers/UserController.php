@@ -3,18 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use \Illuminate\Support\Facades\Redirect;
-
-use App\User;
-use App\Roles;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
         $users = User::paginate(10);
@@ -28,7 +19,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles            = Roles::all();
+        $roles = Roles::all();
         return view('users.create', [ 'roles' => $roles]);
     }
 
@@ -133,4 +124,5 @@ class UserController extends Controller
         User::find($id)->delete();
         return Redirect::to('users')->with('message', 'User deleted!');
     }
+    
 }

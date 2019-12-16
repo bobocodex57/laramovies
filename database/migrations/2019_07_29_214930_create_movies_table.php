@@ -14,15 +14,19 @@ class CreateMoviesTable extends Migration
     public function up()
     {
         Schema::create('movies', function (Blueprint $table) {
-            $table->increments('id');
+            $table->bigIncrements('id');
             $table->string('name');
-            $table->string('release_year');
-            $table->string('image')->nullable();
-            $table->integer('genre_id');
+            $table->timestamp('release_date');//New
+            $table->string('image')->nullable();//3x4 movie  photo/poster
+            $table->string('cover_photo')->nullable();//6x3 background photo  //am considering removing
+            $table->integer('pop_rating')->default(0);//in house bonus rating if movie needs boosting or going to be a hit
             $table->integer('rating_id')->nullable();
-            $table->text('plot')->nullable();
+            $table->text('plot');
+            $table->string('movie_length')->nullable();
+            $table->string('movie_studio')->nullable();
             $table->string('country')->nullable();
             $table->string('imdb_id')->nullable();
+            $table->bigInteger('movie_views')->default(0);
             $table->timestamps();
         });
     }

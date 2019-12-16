@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateVotesTable extends Migration
+class CreateMovieGenresTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,10 @@ class CreateVotesTable extends Migration
      */
     public function up()
     {
-        Schema::create('votes', function (Blueprint $table) {
-            $table->increments('id');
-            $table->boolean('vote');
-            $table->integer('review_id');
-            $table->integer('vote_user_id');            
-            $table->timestamps();
+        Schema::create('movie_genres', function (Blueprint $table) {
+            $table->integer('movie_id');
+            $table->integer('genre_id');
+            $table->primary('movie_id','genre_id');
         });
     }
 
@@ -29,6 +27,6 @@ class CreateVotesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('votes');
+        Schema::dropIfExists('movie_genres');
     }
 }

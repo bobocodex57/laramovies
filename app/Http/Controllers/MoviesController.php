@@ -1,11 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-use \Illuminate\Support\Facades\Redirect;
 
 use App\User;
 use App\Genre;
 use App\Roles;
+use App\Photos;
+use App\Videos;
 use App\Movies;
 use App\Ratings;
 use App\CastCrew;
@@ -14,15 +15,16 @@ use Illuminate\Http\Request;
 
 class MoviesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+     public function index()
     {
-        $movies = Movies::paginate(10);
-        return view('movies.index', [ 'movies' => $movies]);        
+        $movies = new Movies();
+        
+        $headline = $movies->headline();
+        $latestMovies = $movies->latestMovies();
+        $trendingMovies = $movies->TrendingMovies();
+        $upcomingMovies = $movies->upcomingMovies();
+
+        return view('movies.index', compact('headline','latestMovies','trendingMovies','upcomingMovies'));        
     }
 
     /**
@@ -32,13 +34,13 @@ class MoviesController extends Controller
      */
     public function create()
     {
-        $roles            = Roles::all();
-        $casts    = User::whereIn('role_id', array('2','3'))->get();
-        $crews    = User::whereIn('role_id', array('7'))->get();
+        // $roles    = Roles::all();
+        // $casts    = User::whereIn('role_id', array('2','3'))->get();
+        // $crews    = User::whereIn('role_id', array('7'))->get();
         $genres   = Genre::all();  
         $ratings  = Ratings::all();
 
-        return view('movies.create', [ 'casts' => $casts, 'genres'=>$genres,'ratings'=>$ratings,'crews'=>$crews]);
+        return view('movies.create', compact('genres','ratings'));
     }
 
     /**
@@ -49,29 +51,91 @@ class MoviesController extends Controller
      */
     public function store(Request $request)
     {
-        $movie      = new Movies();
+        $movie = new Movies();
+        
+        $movie = new Movies();
         
         $name          = $request->name;
-        $release_year  = $request->release_year;
+        $release_date  = $request->release_date;
         $image         = $request->image;
-        $genre_id      = $request->genre_id;
+        $cover_photo = $request->cover_photo;
+        $pop_rating    = $request->pop_rating;
         $rating_id     = $request->rating_id;
         $plot          = $request->plot;
+        $movie_length  = $request->movie_length;
+        $movie_studio  = $request->movie_studio;
         $country       = $request->country;
         $imdb_id       = $request->imdb_id;
 
         $movie->name          = $name;
-        $movie->release_year  = $release_year;
+        $movie->release_date  = $release_date;
         $movie->image         = $image;
-        $movie->genre_id      = $genre_id;
+        $movie->cover_photo   = $cover_photo;
         $movie->rating_id     = $rating_id;
+        $movie->pop_rating    = $pop_rating;
         $movie->plot          = $plot;
+        $movie->movie_length  = $movie_length;
+        $movie->movie_studio  = $movie_studio;
         $movie->country       = $country;
         $movie->imdb_id       = $imdb_id;
 
         $movie->save();
 
-        return Redirect::to('movies')->with('message', 'New Movie added!');
+        $genres = $request->genres;
+        $casts = $request->casted;
+        $photos = $request->photod;
+        $videos = $request->videod;
+
+        if(isset($videos) && count($videos) > 0)
+        {
+            foreach($videos as $video)
+            {   
+                $video = Videos::find($video);
+
+                if ($video) {
+                    $movie->videos()->attach($video);
+                }
+            }
+        }
+
+        if(isset($photos) && count($photos) > 0)
+        {
+            foreach($photos as $photo)
+            {   
+                $photo = Photos::find($photo);
+
+                if ($photo) {
+                    $movie->photos()->attach($photo);
+                }
+            }
+        }
+
+        if(isset($genres) && count($genres) > 0)
+        {
+            foreach($genres as $genre)
+            {   
+                $genre = Genre::find($genre);
+
+                if ($genre) {
+                    $movie->genres()->attach($genre);
+                }
+            }
+        }
+
+
+        if(isset($casts) && count($casts) > 0)
+        {
+            foreach($casts as $cast)
+            {   
+                $user = User::find($cast);
+
+                if ($user) {
+                    $movie->casts()->attach($user);
+                }
+            }
+        }
+
+        return redirect('movies')->with('message', 'New Movie added!');
     }
 
     /**
@@ -82,8 +146,11 @@ class MoviesController extends Controller
      */
     public function show($id)
     {
-        $movie  = Movies::find($id);
-        return view('movies.show', ['movie' => $movie ]);
+        $movie  = Movies::with('reviews','photos','videos','genres', 'casts')->find($id);
+        $movie->movie_views = $movie->movie_views + 1;
+        $movie->save();
+
+        return view('movies.show', compact('movie'));
     }
 
     /**
@@ -94,13 +161,11 @@ class MoviesController extends Controller
      */
     public function edit($id)
     {
-        $movie    = Movies::find($id);
-        $casts    = User::whereIn('role_id', array('2','3'))->get();
-        $crews    = User::whereIn('role_id', array('7'))->get();
-        $genres   = Genre::all();  
+        $movie    = Movies::with('reviews','photos','videos','genres', 'casts')->find($id); 
         $ratings  = Ratings::all();
+        $genres = Genre::all();
 
-        return view('movies.edit', [ 'movie' => $movie , 'casts' => $casts, 'genres'=>$genres,'ratings'=>$ratings,'crews'=>$crews ]);
+        return view('movies.edit', compact('movie', 'genres', 'ratings'));
     }
 
    /**
@@ -113,75 +178,107 @@ class MoviesController extends Controller
     public function update(Request $request, $id)
     {
         $movie         = Movies::find($id);
-        $cast_crews    = CastCrew::firstOrNew(['movie_id' => $movie->id]);
+        
         $name          = $request->name;
-        $release_year  = $request->release_year;
+        $release_date  = $request->release_date;
         $image         = $request->image;
-        $genre_id      = $request->genre_id;
+        // $cover_photo   = $request->cover_photo;
+        $pop_rating    = $request->pop_rating;
         $rating_id     = $request->rating_id;
         $plot          = $request->plot;
+        $movie_length  = $request->movie_length;
+        $movie_studio  = $request->movie_studio;
         $country       = $request->country;
         $imdb_id       = $request->imdb_id;
 
-        $movie->name          = $name;
-        $movie->release_year  = $release_year;
+        //check for null values
+        if($name)
+            $movie->name          = $name;
+
+        if($release_date)
+            $movie->release_date  = $release_date;
         
         if($image)
             $movie->image         = $image;
         
-            $movie->genre_id      = $genre_id;
-        $movie->rating_id     = $rating_id;
+        // if($cover_photo)
+        //     $movie->$cover_photo  = $cover_photo;
 
-        if($country)
-            $movie->country       = $country;
+        if($pop_rating)
+            $movie->pop_rating    = $pop_rating;
         
+        if ($rating_id) 
+            $movie->rating_id     = $rating_id;
+
         if($plot)
             $movie->plot          = $plot;
         
+        if($movie_length)
+            $movie->movie_length  = $movie_length;
+        
+        if($movie_studio)
+            $movie->movie_studio  = $movie_studio;
+
         if($imdb_id)
             $movie->imdb_id       = $imdb_id;
 
         $movie->save();
 
-        $crews  =  explode(",",$request->crew_value);
-        $casts  =  explode(",",$request->cast_value);
+        $genres = $request->genres;
+        $casts = $request->casted;
+        $photos = $request->photod;
+        $videos = $request->videod;
 
-        if(count($crews)>0 && count($casts)>0 )
+        if(isset($videos) && count($videos) > 0)
         {
-            $cast_crews::where('movie_id',$movie->id)->delete(); 
-        }
+            foreach($videos as $video)
+            {   
+                $video = Videos::find($video);
 
-        if(isset($crews) && count($crews)>1)
-        {
-            foreach($crews as $crew)
-            {
-                $cast_crews->user_id = $crew;
-                $cast_crews->movie_id = $movie->id;
-                $cast_crews->insert([
-                                        'user_id' => $crew,
-                                        'movie_id' => $movie->id,
-                                        'created_at' => Carbon::now(),
-                                        'updated_at' => Carbon::now()
-                                    ]);
+                if ($video) {
+                    $movie->videos()->sync([$video->id], false);
+                }
             }
         }
 
-        if(count($casts)>0 && count($casts)>1)
+        if(isset($photos) && count($photos) > 0)
+        {
+            foreach($photos as $photo)
+            {   
+                $photo = Photos::find($photo);
+
+                if ($photo) {
+                    $movie->photos()->sync([$photo->id], false);
+                }
+            }
+        }
+
+        if(isset($genres) && count($genres) > 0)
+        {
+            foreach($genres as $genre)
+            {   
+                $genre = Genre::find($genre);
+
+                if ($genre) {
+                    $movie->genres()->sync([$genre->id], false);
+                }
+            }
+        }
+
+
+        if(isset($casts) && count($casts) > 0)
         {
             foreach($casts as $cast)
-            {
-                $cast_crews->user_id  = $cast;
-                $cast_crews->movie_id = $movie->id;
-                $cast_crews->insert([
-                                        'user_id' => $cast,
-                                        'movie_id' => $movie->id,
-                                        'created_at' => Carbon::now(),
-                                        'updated_at' => Carbon::now()
-                                    ]);
+            {   
+                $user = User::find($cast);
+
+                if ($user) {
+                    $movie->casts()->sync([$user->id], false);
+                }
             }
         }
 
-        return Redirect::to('movies')->with('message', 'Movie updated!');
+        return redirect('movies')->with('message', 'Movie updated!');
 
     }
 
@@ -195,6 +292,7 @@ class MoviesController extends Controller
     public function destroy($id)
     {
         Movies::find($id)->delete();
-        return Redirect::to('movies')->with('message', 'Movie deleted!');
+        return redirect('movies')->with('message', 'Movie deleted!');
     }
+
 }

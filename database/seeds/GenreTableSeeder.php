@@ -30,6 +30,5 @@ class GenreTableSeeder extends Seeder
         DB::table('genres')->insert(['name' => "War"]);
         DB::table('genres')->insert(['name' => "Family"]);
         DB::table('genres')->insert(['name' => "Biography"]);
-
     }
 }

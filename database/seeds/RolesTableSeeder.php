@@ -15,6 +15,8 @@ class RolesTableSeeder extends Seeder
         DB::table('roles')->insert(['name' => "Actor"]);
         DB::table('roles')->insert(['name' => "Actress"]);
         DB::table('roles')->insert(['name' => "Director"]);
+        DB::table('roles')->insert(['name' => "Executive Director"]);
+        DB::table('roles')->insert(['name' => "Critic"]);
         DB::table('roles')->insert(['name' => "Producer"]);
         DB::table('roles')->insert(['name' => "Music Director"]);
         DB::table('roles')->insert(['name' => "Crew"]);
